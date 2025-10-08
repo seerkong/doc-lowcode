@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Components Test</title>
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    
+    .test-section {
+      margin: 20px;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    
+    .test-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 15px;
+      color: #333;
+    }
+  </style>
+
+  <script type="module">
+    import { createApp, reactive, h, computed, watchEffect } from 'vue'
+    import { computedAsync } from '@vueuse/core'
+    import { Render } from 'el-lowcode'
+    import { FormDemo } from './dsldemo/FormDemo'
+    import { ElFormDemo } from './dsldemo/ElFormDemo'
+    import { TableDemo } from './dsldemo/TableDemo'
+
+    const formSchema = computedAsync(() => {
+      return FormDemo;
+    })
+
+    const elFormSchema = computedAsync(() => {
+      return ElFormDemo;
+    })
+
+    const tableSchema = computedAsync(() => {
+      return TableDemo;
+    })
+
+    const loading = h('h1', { style: 'margin-top: 45vh; text-align: center;' }, 'Loading……')
+
+    createApp(() => {
+      return h('div', [
+        h('h1', { style: 'text-align: center; margin: 20px;' }, 'Web Components Test'),
+        
+        h('div', { class: 'test-section' }, [
+          h('div', { class: 'test-title' }, '原生HTML表单测试'),
+          formSchema.value ? h(Render, { schema: formSchema.value }) : loading
+        ]),
+        
+        h('div', { class: 'test-section' }, [
+          h('div', { class: 'test-title' }, 'Element Plus表单测试'),
+          elFormSchema.value ? h(Render, { schema: elFormSchema.value }) : loading
+        ]),
+        
+        h('div', { class: 'test-section' }, [
+          h('div', { class: 'test-title' }, '原生HTML表格测试'),
+          tableSchema.value ? h(Render, { schema: tableSchema.value }) : loading
+        ])
+      ])
+    })
+      .mount(document.body)
+  </script>
+</head>
+
+<body>
+
+</body>
+
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minimal Test</title>
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #303133;
+      margin-bottom: 30px;
+    }
+  </style>
+
+  <script type="module">
+    import { createApp, h } from 'vue'
+    import { computedAsync } from '@vueuse/core'
+    import { Render } from 'el-lowcode'
+    import { FormDemo } from './dsldemo/FormDemo'
+
+    console.log('=== Minimal Test Starting ===')
+
+    const schema = computedAsync(() => {
+      console.log('Schema computed:', FormDemo)
+      return FormDemo;
+    })
+
+    const loading = h('h1', { style: 'margin-top: 45vh; text-align: center;' }, 'Loading……')
+
+    createApp(() => {
+      console.log('Main app render called')
+      console.log('Schema value:', schema.value)
+      
+      return h('div', { class: 'container' }, [
+        h('h1', '最小化测试'),
+        
+        h('div', [
+          h('p', '测试el-lowcode基本渲染功能：'),
+          schema.value ? h(Render, { schema: schema.value }) : loading
+        ])
+      ])
+    })
+      .mount(document.body)
+  </script>
+</head>
+
+<body>
+
+</body>
+
+</html>

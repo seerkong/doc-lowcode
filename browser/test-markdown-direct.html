@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MarkdownIt 渲染器直接测试</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #303133;
+      margin-bottom: 30px;
+    }
+    
+    .editor-section {
+      margin-bottom: 40px;
+    }
+    
+    .editor-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #409eff;
+    }
+    
+    .editor-container {
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      min-height: 300px;
+      padding: 12px;
+      font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .preview-container {
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      min-height: 300px;
+      padding: 12px;
+      background-color: #fff;
+    }
+    
+    .debug-section {
+      background: #f5f7fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    
+    .debug-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #303133;
+    }
+    
+    pre {
+      background: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #e4e7ed;
+      overflow-x: auto;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .button-group {
+      margin: 20px 0;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .btn-primary {
+      background-color: #409eff;
+      color: white;
+    }
+    
+    .btn-success {
+      background-color: #67c23a;
+      color: white;
+    }
+    
+    .btn-warning {
+      background-color: #e6a23c;
+      color: white;
+    }
+    
+    .btn-danger {
+      background-color: #f56c6c;
+      color: white;
+    }
+    
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>MarkdownIt 渲染器直接测试</h1>
+    
+    <div class="layout">
+      <div class="editor-section">
+        <div class="editor-title">Markdown 编辑器</div>
+        <textarea 
+          id="markdown-input" 
+          class="editor-container"
+          placeholder="请输入Markdown内容..."
+        ># 欢迎使用Markdown编辑器
+
+这是一个**示例Markdown内容**，支持：
+
+- 列表项
+- 代码块
+- 链接
+- 图片
+
+```javascript
+console.log('Hello World!');
+```
+
+[查看更多](https://www.example.com)
+
+## 表格示例
+
+| 列1 | 列2 | 列3 |
+|-----|-----|-----|
+| 数据1 | 数据2 | 数据3 |
+| 数据4 | 数据5 | 数据6 |
+
+## 引用示例
+
+> 这是一个引用块
+> 
+> 支持多行引用
+
+## 任务列表
+
+- [x] 已完成的任务
+- [ ] 未完成的任务
+- [ ] 另一个任务</textarea>
+      </div>
+      
+      <div class="editor-section">
+        <div class="editor-title">Markdown 预览</div>
+        <div id="markdown-preview" class="preview-container">
+          <!-- Markdown渲染结果将在这里显示 -->
+        </div>
+      </div>
+    </div>
+    
+    <div class="button-group">
+      <button class="btn-primary" onclick="printContent()">打印Markdown内容</button>
+      <button class="btn-success" onclick="setExampleContent()">设置示例内容</button>
+      <button class="btn-warning" onclick="getHTML()">获取渲染后的HTML</button>
+      <button class="btn-danger" onclick="clearContent()">清空内容</button>
+    </div>
+    
+    <div class="debug-section">
+      <div class="debug-title">原始Markdown内容:</div>
+      <pre id="markdown-output">等待内容...</pre>
+    </div>
+    
+    <div class="debug-section">
+      <div class="debug-title">渲染后的HTML:</div>
+      <pre id="html-output">等待内容...</pre>
+    </div>
+  </div>
+
+  <script type="module">
+    import MarkdownIt from 'markdown-it'
+
+    // 创建MarkdownIt实例
+    const md = new MarkdownIt({
+      html: true,        // 允许HTML标签
+      linkify: true,     // 自动转换URL为链接
+      typographer: true, // 启用智能引号和其他替换
+      breaks: true       // 转换换行符为<br>
+    })
+
+    // 添加任务列表插件支持（简单实现）
+    md.renderer.rules.list_item_open = function(tokens, idx, options, env, renderer) {
+      const token = tokens[idx]
+      const nextToken = tokens[idx + 1]
+      
+      if (nextToken && nextToken.type === 'paragraph_open') {
+        const paragraphToken = tokens[idx + 2]
+        if (paragraphToken && paragraphToken.content && paragraphToken.content.trim().startsWith('[ ]')) {
+          return '<li class="task-list-item"><input type="checkbox" disabled> '
+        } else if (paragraphToken && paragraphToken.content && paragraphToken.content.trim().startsWith('[x]')) {
+          return '<li class="task-list-item"><input type="checkbox" checked disabled> '
+        }
+      }
+      
+      return '<li>'
+    }
+
+    // 状态变量
+    let markdownInput = ''
+
+    // 更新预览函数
+    const updatePreview = () => {
+      try {
+        const html = md.render(markdownInput)
+        const previewElement = document.getElementById('markdown-preview')
+        const markdownOutputElement = document.getElementById('markdown-output')
+        const htmlOutputElement = document.getElementById('html-output')
+        
+        if (previewElement) {
+          previewElement.innerHTML = html
+        }
+        if (markdownOutputElement) {
+          markdownOutputElement.textContent = markdownInput
+        }
+        if (htmlOutputElement) {
+          htmlOutputElement.textContent = html
+        }
+      } catch (error) {
+        console.error('Markdown渲染错误:', error)
+        const previewElement = document.getElementById('markdown-preview')
+        if (previewElement) {
+          previewElement.innerHTML = '<p style="color: red;">渲染错误: ' + error.message + '</p>'
+        }
+      }
+    }
+
+    // 页面加载完成后初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      const textarea = document.getElementById('markdown-input')
+      if (textarea) {
+        markdownInput = textarea.value
+        updatePreview()
+
+        // 监听输入变化
+        textarea.addEventListener('input', (e) => {
+          markdownInput = e.target.value
+          updatePreview()
+        })
+      }
+    })
+
+    // 全局函数
+    window.printContent = () => {
+      const textarea = document.getElementById('markdown-input')
+      console.log('Markdown内容:', textarea.value)
+      alert('Markdown内容已打印到控制台')
+    }
+
+    window.setExampleContent = () => {
+      const textarea = document.getElementById('markdown-input')
+      const exampleContent = `# 新的示例内容
+
+这是一个**新的Markdown示例**，展示了更多功能：
+
+## 代码高亮
+
+\`\`\`javascript
+function hello() {
+  console.log("Hello, MarkdownIt!");
+  return true;
+}
+\`\`\`
+
+## 数学公式（如果支持）
+
+行内公式：$E = mc^2$
+
+块级公式：
+$$
+\\sum_{i=1}^{n} x_i = x_1 + x_2 + \\cdots + x_n
+$$
+
+## 表格
+
+| 功能 | 支持状态 | 说明 |
+|------|----------|------|
+| 标题 | ✅ | 支持1-6级标题 |
+| 列表 | ✅ | 支持有序和无序列表 |
+| 链接 | ✅ | 支持内联和引用链接 |
+| 图片 | ✅ | 支持内联图片 |
+| 代码 | ✅ | 支持行内和块级代码 |
+
+## 引用
+
+> 这是一个多行引用
+> 
+> 可以包含**粗体**和*斜体*文本
+> 
+> 也可以包含[链接](https://example.com)
+
+## 任务列表
+
+- [x] 已完成的任务1
+- [x] 已完成的任务2
+- [ ] 待完成的任务1
+- [ ] 待完成的任务2`
+      
+      textarea.value = exampleContent
+      textarea.dispatchEvent(new Event('input'))
+    }
+
+    window.getHTML = () => {
+      const html = document.getElementById('markdown-preview').innerHTML
+      alert('渲染后的HTML:\n' + html)
+    }
+
+    window.clearContent = () => {
+      const textarea = document.getElementById('markdown-input')
+      textarea.value = ''
+      textarea.dispatchEvent(new Event('input'))
+    }
+  </script>
+
+  <style>
+    /* Markdown渲染样式 */
+    #markdown-preview {
+      line-height: 1.6;
+    }
+    
+    #markdown-preview h1, #markdown-preview h2, #markdown-preview h3, 
+    #markdown-preview h4, #markdown-preview h5, #markdown-preview h6 {
+      margin-top: 24px;
+      margin-bottom: 16px;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+    
+    #markdown-preview h1 {
+      font-size: 2em;
+      border-bottom: 1px solid #eaecef;
+      padding-bottom: 10px;
+    }
+    
+    #markdown-preview h2 {
+      font-size: 1.5em;
+      border-bottom: 1px solid #eaecef;
+      padding-bottom: 10px;
+    }
+    
+    #markdown-preview h3 {
+      font-size: 1.25em;
+    }
+    
+    #markdown-preview p {
+      margin-bottom: 16px;
+    }
+    
+    #markdown-preview ul, #markdown-preview ol {
+      margin-bottom: 16px;
+      padding-left: 30px;
+    }
+    
+    #markdown-preview li {
+      margin-bottom: 4px;
+    }
+    
+    #markdown-preview blockquote {
+      margin: 16px 0;
+      padding: 0 16px;
+      color: #6a737d;
+      border-left: 4px solid #dfe2e5;
+    }
+    
+    #markdown-preview code {
+      background-color: rgba(27, 31, 35, 0.05);
+      border-radius: 3px;
+      font-size: 85%;
+      margin: 0;
+      padding: 2px 4px;
+    }
+    
+    #markdown-preview pre {
+      background-color: #f6f8fa;
+      border-radius: 6px;
+      font-size: 85%;
+      line-height: 1.45;
+      overflow: auto;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    
+    #markdown-preview pre code {
+      background-color: transparent;
+      border: 0;
+      font-size: 100%;
+      margin: 0;
+      padding: 0;
+      word-break: normal;
+      white-space: pre;
+      word-wrap: normal;
+    }
+    
+    #markdown-preview table {
+      border-collapse: collapse;
+      border-spacing: 0;
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    
+    #markdown-preview table th, #markdown-preview table td {
+      border: 1px solid #dfe2e5;
+      padding: 6px 13px;
+    }
+    
+    #markdown-preview table th {
+      font-weight: 600;
+      background-color: #f6f8fa;
+    }
+    
+    #markdown-preview table tr {
+      background-color: #fff;
+      border-top: 1px solid #c6cbd1;
+    }
+    
+    #markdown-preview table tr:nth-child(2n) {
+      background-color: #f6f8fa;
+    }
+    
+    #markdown-preview a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+    
+    #markdown-preview a:hover {
+      text-decoration: underline;
+    }
+    
+    #markdown-preview .task-list-item {
+      list-style-type: none;
+    }
+    
+    #markdown-preview .task-list-item input {
+      margin-right: 8px;
+    }
+  </style>
+</body>
+</html>

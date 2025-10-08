@@ -1,0 +1,22 @@
+{
+  "name": "doc-lowcode",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run browser-dev\"",
+    "browser-dev": "node scripts/dev-browser.cjs",
+    "browser-preview": "cd browser && vite preview"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "concurrently": "^8.2.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.5"
+  },
+  "stackblitz": {
+    "startCommand": "pnpm i && pnpm dev"
+  }
+}

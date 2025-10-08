@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TipTap 富文本编辑器 - 完整功能版</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    
+    .toolbar-container {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px 8px 0 0;
+      background: #f8fafc;
+      padding: 6px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+    
+    .toolbar-button {
+      padding: 6px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 13px;
+      min-height: 32px;
+    }
+    
+    .toolbar-button:hover {
+      background: #f3f4f6;
+    }
+    
+    .toolbar-button.active {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    .toolbar-separator {
+      width: 1px;
+      height: 20px;
+      background: #d1d5db;
+      margin: 0 2px;
+    }
+
+    /* 下拉框样式 */
+    .toolbar-select {
+      padding: 6px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      min-height: 32px;
+      min-width: 60px;
+    }
+
+    .toolbar-select:hover {
+      background: #f3f4f6;
+    }
+
+    .toolbar-select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    
+    .editor-container {
+      border: 1px solid #e2e8f0;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      min-height: 300px;
+    }
+    
+    .ProseMirror {
+      padding: 1rem;
+      outline: none;
+    }
+    
+    .output-container {
+      margin-top: 20px;
+    }
+    
+    .output-container h2 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+    
+    .output {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    /* Vue组件样式 */
+    .vue-text-btn-demo-wrapper {
+      margin: 1rem 0;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 1rem;
+    }
+
+    .vue-text-btn-demo-wrapper .button-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .vue-text-btn-demo-wrapper button {
+      padding: 8px 16px;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .vue-text-btn-demo-wrapper button:hover {
+      background: #2563eb;
+    }
+
+    .vue-text-btn-demo-wrapper .delete-button {
+      background: #ef4444;
+    }
+
+    .vue-text-btn-demo-wrapper .delete-button:hover {
+      background: #dc2626;
+    }
+
+    .vue-text-btn-demo-wrapper .editable-content {
+      border: 1px dashed #d1d5db;
+      padding: 8px;
+      min-height: 40px;
+      background: white;
+      border-radius: 4px;
+    }
+
+    /* 表格样式 */
+    .ProseMirror table {
+      border-collapse: collapse;
+      margin: 0;
+      overflow: hidden;
+      table-layout: fixed;
+      width: 100%;
+    }
+
+    .ProseMirror td,
+    .ProseMirror th {
+      border: 1px solid #d1d5db;
+      box-sizing: border-box;
+      min-width: 1em;
+      padding: 6px 8px;
+      position: relative;
+      vertical-align: top;
+    }
+
+    .ProseMirror th {
+      background-color: #f8fafc;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    .ProseMirror .selectedCell:after {
+      background: rgba(59, 130, 246, 0.1);
+      content: "";
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+      position: absolute;
+      z-index: 2;
+    }
+
+    .ProseMirror .column-resize-handle {
+      background-color: #3b82f6;
+      bottom: -2px;
+      pointer-events: none;
+      position: absolute;
+      right: -2px;
+      top: 0;
+      width: 4px;
+    }
+
+    .ProseMirror .tableWrapper {
+      margin: 1.5rem 0;
+      overflow-x: auto;
+    }
+
+    .ProseMirror.resize-cursor {
+      cursor: ew-resize;
+      cursor: col-resize;
+    }
+
+    /* 代码块样式 */
+    .ProseMirror .codeBlock {
+      padding: 1rem;
+      background: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 0.375rem;
+      color: #212529;
+      font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      overflow-x: auto;
+    }
+
+    /* 光标样式 */
+    .ProseMirror .ProseMirror-cursor,
+    .ProseMirror-focused .ProseMirror-cursor {
+      border-left: 3px solid #3b82f6 !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script type="module">
+    import { createApp, h } from 'vue'
+    import { Editor } from '@tiptap/core'
+    import { EditorContent } from '@tiptap/vue-3'
+    import { StarterKit } from '@tiptap/starter-kit'
+    import { TextAlign } from '@tiptap/extension-text-align'
+    import { TextStyle } from '@tiptap/extension-text-style'
+    import { Highlight } from '@tiptap/extension-highlight'
+    import { Color } from '@tiptap/extension-color'
+    import { Link } from '@tiptap/extension-link'
+    import { Placeholder } from '@tiptap/extension-placeholder'
+    import { Image } from '@tiptap/extension-image'
+    // 使用本地自定义的TableKit扩展
+    import { TableKitWithCustomAttributes } from './packages/tiptap-ext-table/src/kit/table-kit-with-custom-attributes.ts'
+    // 使用自定义Vue组件扩展
+    import VueTextBtnDemo from './packages/tiptap-ext-vue-text-btn-demo/src/index.ts'
+
+    // 创建编辑器实例
+    let editorInstance = null
+
+    // 初始化编辑器
+    const initEditor = () => {
+      editorInstance = new Editor({
+        element: document.createElement('div'), // EditorContent will mount to this
+        extensions: [
+          StarterKit.configure({
+            codeBlock: {
+              HTMLAttributes: { 
+                class: 'codeBlock'
+              }
+            },
+            link: false // 禁用StarterKit中的Link扩展
+          }),
+          TextAlign.configure({
+            types: ['heading', 'paragraph'],
+          }),
+          TextStyle,
+          Highlight.configure({ multicolor: true }),
+          Color,
+          Link.configure({
+            openOnClick: false,
+            defaultProtocol: 'https',
+          }),
+          Placeholder.configure({
+            placeholder: 'Type / to browse options',
+          }),
+          Image.configure({ allowBase64: true, HTMLAttributes: { style: 'display: block' } }),
+          TableKitWithCustomAttributes.configure({
+            resizable: true,
+            table: {
+              HTMLAttributes: {
+                style: 'border-collapse: collapse; table-layout: fixed; width: 100%;'
+              },
+            },
+          }),
+          VueTextBtnDemo,
+        ],
+        content: `
+          <h1>欢迎使用 TipTap 富文本编辑器</h1>
+          <p>这是一个<strong>示例富文本内容</strong>，支持：</p>
+          <ul>
+            <li>格式化文本</li>
+            <li>列表</li>
+            <li>链接</li>
+            <li>图片</li>
+            <li>表格（支持自定义属性）</li>
+            <li>Vue组件</li>
+          </ul>
+          <table x-id="demo_table_001">
+            <thead>
+              <tr>
+                <th>列1</th>
+                <th>列2</th>
+                <th>列3</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>数据1</td>
+                <td>数据2</td>
+                <td>数据3</td>
+              </tr>
+              <tr>
+                <td>数据4</td>
+                <td>数据5</td>
+                <td>数据6</td>
+              </tr>
+            </tbody>
+          </table>
+          <p>您可以在这里编辑富文本内容。</p>
+          
+          <!-- Vue组件示例 -->
+          <p>Click the button below: </p>
+          <vue-text-btn-demo count="0">Editable content</vue-text-btn-demo>
+        `,
+        onUpdate: ({ editor }) => {
+          // 更新输出
+          const htmlOutput = document.getElementById('html-output')
+          const jsonOutput = document.getElementById('json-output')
+          if (htmlOutput) htmlOutput.textContent = editor.getHTML()
+          if (jsonOutput) jsonOutput.textContent = JSON.stringify(editor.getJSON(), null, 2)
+        }
+      })
+    }
+
+    // 插入Vue组件的函数
+    function insertVueComponent() {
+      if (editorInstance) {
+        editorInstance.commands.insertVueTextBtnDemo()
+      }
+    }
+
+    // 创建Vue应用
+    const app = createApp({
+      data() {
+        return {
+          htmlOutput: '',
+          jsonOutput: '',
+          currentHeadingLevel: 0,
+          textAlign: 'left'
+        }
+      },
+      mounted() {
+        // 初始化编辑器
+        initEditor()
+        
+        // 初始化输出
+        this.updateOutputs()
+        
+        // 监听编辑器变化
+        editorInstance.on('update', () => {
+          this.updateOutputs()
+        })
+      },
+      methods: {
+        updateOutputs() {
+          if (editorInstance) {
+            this.htmlOutput = editorInstance.getHTML()
+            this.jsonOutput = JSON.stringify(editorInstance.getJSON(), null, 2)
+            this.currentHeadingLevel = this.getCurrentHeadingLevel()
+            this.textAlign = this.getCurrentTextAlign()
+          }
+        },
+        // 工具栏按钮方法
+        toggleBold() {
+          editorInstance?.commands.toggleBold()
+        },
+        toggleItalic() {
+          editorInstance?.commands.toggleItalic()
+        },
+        toggleUnderline() {
+          editorInstance?.commands.toggleUnderline()
+        },
+        toggleStrike() {
+          editorInstance?.commands.toggleStrike()
+        },
+        toggleCode() {
+          editorInstance?.commands.toggleCode()
+        },
+        setHeading(level) {
+          editorInstance?.commands.toggleHeading({ level })
+        },
+        setParagraph() {
+          editorInstance?.commands.setParagraph()
+        },
+        handleHeadingChange(event) {
+          const level = parseInt(event.target.value)
+          if (level === 0) {
+            this.setParagraph()
+          } else {
+            this.setHeading(level)
+          }
+        },
+        getCurrentHeadingLevel() {
+          if (!editorInstance) return 0
+          if (editorInstance.isActive('paragraph')) return 0
+          for (let i = 1; i <= 6; i++) {
+            if (editorInstance.isActive('heading', { level: i })) {
+              return i
+            }
+          }
+          return 0
+        },
+        getCurrentTextAlign() {
+          if (!editorInstance) return 'left'
+          if (editorInstance.isActive({ textAlign: 'center' })) return 'center'
+          if (editorInstance.isActive({ textAlign: 'right' })) return 'right'
+          return 'left'
+        },
+        toggleBulletList() {
+          editorInstance?.commands.toggleBulletList()
+        },
+        toggleOrderedList() {
+          editorInstance?.commands.toggleOrderedList()
+        },
+        setTextAlign(alignment) {
+          editorInstance?.commands.setTextAlign(alignment)
+        },
+        insertTable() {
+          const xId = 'table_' + Date.now()
+          editorInstance?.commands.insertTable({
+            rows: 3,
+            cols: 3,
+            withHeaderRow: true
+          })
+          // 设置x-id属性
+          setTimeout(() => {
+            const tableElement = document.querySelector('table:not([x-id])')
+            if (tableElement) {
+              tableElement.setAttribute('x-id', xId)
+            }
+          }, 100)
+        },
+        insertImage() {
+          const src = prompt('请输入图片URL:')
+          if (src) {
+            editorInstance?.commands.setImage({ src })
+          }
+        },
+        setLink() {
+          const url = prompt('请输入链接URL:')
+          if (url) {
+            editorInstance?.commands.setLink({ href: url })
+          }
+        },
+        insertVueComponent() {
+          editorInstance?.commands.insertVueTextBtnDemo()
+        },
+        // 表格操作
+        addRowBefore() {
+          editorInstance?.commands.addRowBefore()
+        },
+        addRowAfter() {
+          editorInstance?.commands.addRowAfter()
+        },
+        addColumnBefore() {
+          editorInstance?.commands.addColumnBefore()
+        },
+        addColumnAfter() {
+          editorInstance?.commands.addColumnAfter()
+        },
+        deleteRow() {
+          editorInstance?.commands.deleteRow()
+        },
+        deleteColumn() {
+          editorInstance?.commands.deleteColumn()
+        },
+        deleteTable() {
+          editorInstance?.commands.deleteTable()
+        }
+      },
+      render() {
+        return h('div', [
+          h('h1', 'TipTap 富文本编辑器 - 完整功能版'),
+          
+          h('div', { class: 'toolbar-container' }, [
+            // 基础格式化
+            h('button', { class: 'toolbar-button', onClick: this.toggleBold, title: '粗体' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { class: 'toolbar-button', onClick: this.toggleItalic, title: '斜体' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { class: 'toolbar-button', onClick: this.toggleUnderline, title: '下划线' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M12 17c3.31 0 6-2.69 6-6V3h-2.5v8c0 1.93-1.57 3.5-3.5 3.5S8.5 12.93 8.5 11V3H6v8c0 3.31 2.69 6 6 6zm-7 2v2h14v-2H5z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { class: 'toolbar-button', onClick: this.toggleStrike, title: '删除线' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M10 19h4v-3h-4v3zM5 4v3h5v3h4V7h5V4H5zM3 14h18v-2H3v2z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { class: 'toolbar-button', onClick: this.toggleCode, title: '代码' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z', fill: 'currentColor' })
+              ])
+            ]),
+            
+            h('div', { class: 'toolbar-separator' }),
+            
+            // 标题下拉框
+            h('select', { 
+              class: 'toolbar-select', 
+              onChange: this.handleHeadingChange,
+              value: this.currentHeadingLevel
+            }, [
+              h('option', { value: 0 }, '正文'),
+              h('option', { value: 1 }, '标题 1'),
+              h('option', { value: 2 }, '标题 2'),
+              h('option', { value: 3 }, '标题 3'),
+              h('option', { value: 4 }, '标题 4'),
+              h('option', { value: 5 }, '标题 5'),
+              h('option', { value: 6 }, '标题 6')
+            ]),
+            
+            h('div', { class: 'toolbar-separator' }),
+            
+            // 列表
+            h('button', { class: 'toolbar-button', onClick: this.toggleBulletList, title: '无序列表' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M4 10.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zm0-6c-.83 0-1.5.67-1.5 1.5S3.17 7.5 4 7.5 5.5 6.83 5.5 6 4.83 4.5 4 4.5zm0 12c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5zM7 19h14v-2H7v2zm0-6h14v-2H7v2zm0-8v2h14V5H7z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { class: 'toolbar-button', onClick: this.toggleOrderedList, title: '有序列表' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M2 17h2v.5H3v1h1v.5H2v1h3v-4H2v1zm1-9h1V4H2v1h1v3zm-1 3h1.8L2 13.1v.9h3v-1H3.2L5 10.9V10H2v1zm5-6v2h14V5H7zm0 14h14v-2H7v2zm0-6h14v-2H7v2z', fill: 'currentColor' })
+              ])
+            ]),
+            
+            h('div', { class: 'toolbar-separator' }),
+            
+            // 文字对齐
+            h('button', { 
+              class: `toolbar-button ${this.textAlign === 'left' ? 'active' : ''}`, 
+              onClick: () => this.setTextAlign('left'), 
+              title: '左对齐' 
+            }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M3 21h18v-2H3v2zM3 8h12v-2H3v2zM3 13h15v-2H3v2zM3 3v2h18V3H3z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { 
+              class: `toolbar-button ${this.textAlign === 'center' ? 'active' : ''}`, 
+              onClick: () => this.setTextAlign('center'), 
+              title: '居中对齐' 
+            }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M3 21h18v-2H3v2zM7 8h10v-2H7v2zM5 13h14v-2H5v2zM3 3v2h18V3H3z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { 
+              class: `toolbar-button ${this.textAlign === 'right' ? 'active' : ''}`, 
+              onClick: () => this.setTextAlign('right'), 
+              title: '右对齐' 
+            }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M3 21h18v-2H3v2zM9 8h12v-2H9v2zM7 13h14v-2H7v2zM3 3v2h18V3H3z', fill: 'currentColor' })
+              ])
+            ]),
+            
+            h('div', { class: 'toolbar-separator' }),
+            
+            // 插入功能
+            h('button', { class: 'toolbar-button', onClick: this.insertTable, title: '插入表格' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M3 3v18h18V3H3zm16 16H5V5h14v14zM7 7h4v4H7V7zm6 0h4v4h-4V7zm-6 6h4v4H7v-4zm6 0h4v4h-4v-4z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { class: 'toolbar-button', onClick: this.insertImage, title: '插入图片' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { class: 'toolbar-button', onClick: this.setLink, title: '插入链接' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z', fill: 'currentColor' })
+              ])
+            ]),
+            h('button', { class: 'toolbar-button', onClick: this.insertVueComponent, title: '插入Vue组件' }, [
+              h('svg', { width: '17', height: '17', viewBox: '0 0 24 24', fill: 'none', xmlns: 'http://www.w3.org/2000/svg' }, [
+                h('path', { d: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' })
+              ])
+            ]),
+            
+            h('div', { class: 'toolbar-separator' }),
+            
+            // 表格操作
+            h('button', { class: 'toolbar-button', onClick: this.addRowBefore, title: '上方插入行' }, '↑+'),
+            h('button', { class: 'toolbar-button', onClick: this.addRowAfter, title: '下方插入行' }, '↓+'),
+            h('button', { class: 'toolbar-button', onClick: this.addColumnBefore, title: '左侧插入列' }, '←+'),
+            h('button', { class: 'toolbar-button', onClick: this.addColumnAfter, title: '右侧插入列' }, '→+'),
+            h('button', { class: 'toolbar-button', onClick: this.deleteRow, title: '删除行' }, '⊟'),
+            h('button', { class: 'toolbar-button', onClick: this.deleteColumn, title: '删除列' }, '⊞'),
+            h('button', { class: 'toolbar-button', onClick: this.deleteTable, title: '删除表格' }, '⊠'),
+          ]),
+          
+          h('div', { class: 'editor-container' }, [
+            h(EditorContent, { editor: editorInstance })
+          ]),
+          
+          h('div', { class: 'output-container' }, [
+            h('h2', '实时编辑器内容 (HTML):'),
+            h('pre', { class: 'output', id: 'html-output' }, this.htmlOutput)
+          ]),
+          
+          h('div', { class: 'output-container' }, [
+            h('h2', '实时编辑器内容 (JSON):'),
+            h('pre', { class: 'output', id: 'json-output' }, this.jsonOutput)
+          ])
+        ])
+      }
+    })
+
+    // 挂载Vue应用
+    app.mount('#app')
+  </script>
+</body>
+</html>
